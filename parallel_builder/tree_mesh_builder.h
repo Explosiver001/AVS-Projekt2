@@ -22,8 +22,9 @@ public:
     TreeMeshBuilder(unsigned gridEdgeSize);
 
 private:
-    bool isCubeEmpty(const Vec3_t<float> &cubeOffset, const ParametricScalarField &field, const float cubeEdgeLength);
+    bool isCubeEmpty(const Vec3_t<float> &cubeOffset, const ParametricScalarField &field, const unsigned cubeGridSize);
     unsigned buildTree(const Vec3_t<float> &cubeOffset, const ParametricScalarField &field, const unsigned gridSize);
+    float sqrt3;
 
 protected:
     unsigned marchCubes(const ParametricScalarField &field);

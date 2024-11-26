@@ -17,7 +17,7 @@
 TreeMeshBuilder::TreeMeshBuilder(unsigned gridEdgeSize)
     : BaseMeshBuilder(gridEdgeSize, "Octree")
 {
-
+    sqrt3 = sqrt(3);
 }
 
 unsigned TreeMeshBuilder::marchCubes(const ParametricScalarField &field)
@@ -26,14 +26,23 @@ unsigned TreeMeshBuilder::marchCubes(const ParametricScalarField &field)
     // this class. This method will call itself to process the children.
     // It is also strongly suggested to first implement Octree as sequential
     // code and only when that works add OpenMP tasks to achieve parallelism.
-    
-    return buildTree(Vec3_t<float>(), field, mGridSize);
+    unsigned totalTriangles = 0;
+
+    #pragma omp parallel default(none) shared(totalTriangles, field)
+    {
+        #pragma omp single nowait
+        {
+            totalTriangles = buildTree(Vec3_t<float>(), field, mGridSize);
+        }
+    }
+        
+    return totalTriangles;
 }
 
 
 unsigned TreeMeshBuilder::buildTree(const Vec3_t<float> &cubeOffset, const ParametricScalarField &field, const unsigned gridSize){
     
-    if(isCubeEmpty(cubeOffset, field, float(gridSize))){
+    if(isCubeEmpty(cubeOffset, field, gridSize)){
         return 0;
     }
     
@@ -43,28 +52,36 @@ unsigned TreeMeshBuilder::buildTree(const Vec3_t<float> &cubeOffset, const Param
     }
 
     unsigned innerGridSize = gridSize / 2;
-    float innerGridEdge = float(innerGridSize);
     unsigned totalTriangles = 0;
 
     size_t innerCubes = sc_vertexNormPos.size();
 
     for (int i = 0; i < innerCubes; i++){
-        Vec3_t<float> vertexNormPos = sc_vertexNormPos.at(i);
-        Vec3_t<float> innerCubeOffset(
-				cubeOffset.x + vertexNormPos.x * innerGridEdge,
-				cubeOffset.y + vertexNormPos.y * innerGridEdge,
-				cubeOffset.z + vertexNormPos.z * innerGridEdge
-			);
-        totalTriangles += buildTree(innerCubeOffset, field, innerGridSize);
+        #pragma omp task firstprivate(i) shared(field, totalTriangles, cubeOffset, innerGridSize)
+        {
+            Vec3_t<float> vertexNormPos = sc_vertexNormPos.at(i);
+            Vec3_t<float> innerCubeOffset(
+                cubeOffset.x + vertexNormPos.x * innerGridSize,
+                cubeOffset.y + vertexNormPos.y * innerGridSize,
+                cubeOffset.z + vertexNormPos.z * innerGridSize
+            );
+
+            unsigned innerTriangles = buildTree(innerCubeOffset, field, innerGridSize);
+
+            #pragma omp atomic update
+            totalTriangles += innerTriangles;
+        }
     }
     
-    return totalTriangles;
+    #pragma omp taskwait
+    {
+        return totalTriangles;
+    }
 }
 
-bool TreeMeshBuilder::isCubeEmpty(const Vec3_t<float> &cubeOffset, const ParametricScalarField &field, const float cubeEdgeLength){
+bool TreeMeshBuilder::isCubeEmpty(const Vec3_t<float> &cubeOffset, const ParametricScalarField &field, const unsigned cubeGridSize){
 
-    float fullEdgeLength = cubeEdgeLength * mGridResolution;
-	float halfEdgeLength = fullEdgeLength / 2.F;
+	float halfEdgeLength = cubeGridSize * mGridResolution / 2.0;
     
 	const Vec3_t<float> cubeCenter(
 		cubeOffset.x * mGridResolution + halfEdgeLength,
@@ -72,9 +89,7 @@ bool TreeMeshBuilder::isCubeEmpty(const Vec3_t<float> &cubeOffset, const Paramet
 		cubeOffset.z * mGridResolution + halfEdgeLength
 	);
 
-	static const float expr = sqrtf(3.F) / 2.F;
-
-	return evaluateFieldAt(cubeCenter, field) > (mIsoLevel + expr * fullEdgeLength);
+	return evaluateFieldAt(cubeCenter, field) > (mIsoLevel + sqrt3 * halfEdgeLength);
 }
 
 float TreeMeshBuilder::evaluateFieldAt(const Vec3_t<float> &pos, const ParametricScalarField &field)
@@ -91,7 +106,6 @@ float TreeMeshBuilder::evaluateFieldAt(const Vec3_t<float> &pos, const Parametri
 
     // 2. Find minimum square distance from points "pos" to any point in the
     //    field.
-    #pragma omp simd reduction(min:value)
     for(unsigned i = 0; i < count; ++i)
     {
         float distanceSquared  = (pos.x - pPoints[i].x) * (pos.x - pPoints[i].x);
@@ -109,5 +123,8 @@ float TreeMeshBuilder::evaluateFieldAt(const Vec3_t<float> &pos, const Parametri
 
 void TreeMeshBuilder::emitTriangle(const BaseMeshBuilder::Triangle_t &triangle)
 {
-    mTriangles.push_back(triangle);
+    #pragma omp critical
+    {
+        mTriangles.push_back(triangle);
+    }
 }
