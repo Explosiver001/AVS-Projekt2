@@ -31,10 +31,7 @@ protected:
     float evaluateFieldAt(const Vec3_t<float> &pos, const ParametricScalarField &field);
     void emitTriangle(const Triangle_t &triangle);
     const Triangle_t *getTrianglesArray() const { return mTriangles.data(); }
-    
-
-    std::vector<Triangle_t> mTriangles; ///< Temporary array of triangles
-
+    std::vector<Triangle_t> mTriangles; 
 };
 
 #endif // TREE_MESH_BUILDER_H

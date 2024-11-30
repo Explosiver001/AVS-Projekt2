@@ -9,17 +9,17 @@ vtune: FORCE
 	mv slurm-*.out sbatch_out/
 
 runtree: build
-	bash -c "ml purge && ml intel-compilers/2024.2.0 CMake/3.23.1-GCCcore-11.3.0 && cd build && ./PMC -b tree ../data/bun_zipper_res4.pts bun_zipper_res4.obj"
+	bash -c "ml purge && ml intel-compilers/2024.2.0 CMake/3.23.1-GCCcore-11.3.0 && cd build && ./PMC -b tree ../data/bun_zipper_res1.pts bun_zipper_res4.obj"
 
 runtree16: build
-	bash -c "ml purge && ml intel-compilers/2024.2.0 CMake/3.23.1-GCCcore-11.3.0 && cd build && ./PMC -b tree -t 16 ../data/bun_zipper_res4.pts bun_zipper_res4.obj"
+	bash -c "ml purge && ml intel-compilers/2024.2.0 CMake/3.23.1-GCCcore-11.3.0 && cd build && ./PMC -b tree -t 16 ../data/bun_zipper_res1.pts bun_zipper_res4.obj"
 
 
 runloop: build
-	bash -c "ml purge && ml intel-compilers/2024.2.0 CMake/3.23.1-GCCcore-11.3.0 && cd build && ./PMC -b loop ../data/bun_zipper_res4.pts bun_zipper_res4.obj"
+	bash -c "ml purge && ml intel-compilers/2024.2.0 CMake/3.23.1-GCCcore-11.3.0 && cd build && ./PMC -b loop ../data/bun_zipper_res1.pts bun_zipper_res1.obj"
 
 runloop16: build
-	bash -c "ml purge && ml intel-compilers/2024.2.0 CMake/3.23.1-GCCcore-11.3.0 && cd build && ./PMC -b loop -t 16 ../data/bun_zipper_res4.pts bun_zipper_res4.obj"
+	bash -c "ml purge && ml intel-compilers/2024.2.0 CMake/3.23.1-GCCcore-11.3.0 && cd build && ./PMC -b loop -t 16 ../data/bun_zipper_res1.pts bun_zipper_res1.obj"
 
 
 FORCE: ;

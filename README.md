@@ -5,3 +5,4 @@ mkdir build && cd build
 CC=icx CXX=icpx cmake ..
 make -j
 
+salloc -A DD-24-108 -p qcpu -N 1 -t 1:0:0 --comment 'use:vtune=2022.2.0' --x11

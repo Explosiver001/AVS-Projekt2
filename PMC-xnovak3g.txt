@@ -1,0 +1,120 @@
+Architektury Výpočetních Systémů (AVS 2024)
+Projekt č. 2 (PMC)
+Login: xnovak3g
+
+Úloha 1: Paralelizace původního řešení
+===============================================================================
+1) Kterou ze smyček (viz zadání) je vhodnější paralelizovat a co způsobuje 
+   neefektivitu paralelizaci té druhé?
+
+   - Efektivnější je paralelizace smyčky v metodě marchCubes. 
+
+   - Neefektivitu paralelizace smyčky v metodě evaluateFieldAt způsobuje malá výpočetní zátěž (malý workload) uvnitř smyčky.
+   
+2) Jak jste ve funkci LoopMeshBuilder::marchCubes zajistili správný výsledek 
+  (počet trojúhelníků) vrácený touto funkcí? Popište jaké řešení jste zvolili a proč.  
+
+  - V "#pragma omp for" je použita redukce "reduction(+:totalTriangles)", která zajišťuje správnost výsledků. Každé vlákno pracuje tak s vlastní kopií proměnné, což minimalizuje synchronizační režii. Bez redukce by muselo dojít k synchronizaci pomocí kritické sekce nebo atomických operací, což by bylo složitější a méně efektivní.
+  
+3) Jaké plánování (rozdělení práce mezi vlákna) jste zvolili a proč? Popište, na
+   jakých datech (počet vláken, velikost problému) jste k závěrům došli.  
+
+   - V implementaci je zvoleno dynamické plánování "schedule(dynamic)". Plánovač umožňuje vyrovnávat zátěž mezi jednotlivými vlákny, což pomáhá, když je na některé části objektu potřeba vyšší výkon na zpracování. 
+
+   - Hledání nejlepšího plánovače bylo prováděno pro 36 vláken na souboru bun_zipper_res1.pts. 
+
+
+
+Úloha 2: Paralelní průchod stromem
+===============================================================================
+1) Stručně popište použití OpenMP tasků ve vašem řešení. 
+
+   - OpenMP tasky využívám k paralelizaci rozkladu 3D mřížky v rámci metody buildTree. Nový task se vytváří pro každého z potomků dekompozice.
+
+   - "firstprivate(i)" slouží k izolaci jednotlivých iterací.
+
+   - "shared(field, totalTriangles, cubeOffset, innerGridSize)" deklaruje sdílené proměnné mezi tasky.
+
+   - Počet trojúhelníků z každého tasku je přičítán do celkového počtu pomocí "#pragma omp atomic update"
+
+   - "#pragma omp taskwait" zajišťuje, že všechny vytvořené tasky musí být dokončeny, než funkce vrátí celkový počet trojúhelníků.
+
+2) Jakou hodnotu cut-off jste zvolili? Jaké hodnoty "cut-off" jste zkoušeli, 
+   na jak velkých velikostech problému a jakých času jste dosáhli? 
+   Odůvodněte vaši volbu.
+
+   - Implementace plně využívá Octree dekompozice, proto je "cut-off" striktně nastaven na hodnotu 1. Pokud je tato hodnota změněna, může dojít k vytvoření chybných výsledků. 
+   
+   - Pokud by mělo být možno zvýšit hodnotu "cut-off", musela by se finální dekompozice provádět pomocí podobného algoritmu jako je použit v LoopMeshBuilder::marchCubes.
+
+
+3) Jakým způsobem zajišťujete ukládání trojúhelníků z několika vláken současně 
+   v metodě LoopMeshBuilder::emitTriangle?
+
+   - Výsledky jsou ukládány do vektoru "mTriangles". K zajištění správnosti výsledků je použita kritická sekce.
+
+
+Úloha 3: Grafy škálování všech řešení
+===============================================================================
+
+1) Stručně zhodnoťte efektivitu vytvořených řešení 
+   (na základě VŠECH odevzdaných grafů ŠKÁLOVÁNÍ).
+
+   - Octree je je výhodnější pro větší mřížky, naopak pro menší mřížky je neefektivní (vysoká režie). 
+
+   - Z grafů vyplývá, že Octree je efektivnější než paralelizace původního řešení. 
+
+   - Z grafu silného škálování plyne, že oba algoritmy špatně škálují při přechodu na 2. socket procesoru (zlom 16 na 32 jader).
+
+   - Z grafu slabého škálování vyplývá, že u Octree lépe škáluje pro větší vstupy.
+
+
+
+2) V jakém případě (v závislosti na počtu bodů ve vstupním souboru a velikosti 
+   mřížky) bude vaše řešení 1. úlohy neefektivní? 
+   (pokud takový případ existuje a je vidět ve vašem grafu)
+
+   -Řešení je neefektivní v případě, kdy je velká mřížka s řídkými daty - zbytečně je zpracováván prázdný prostor, protože se kontroluje každý bod v prostoru. Tento jev je možno vidět v "grid scaling grafu", kde loop potřebuje více výpočetního času než octree. 
+
+3) Je (nebo není) stromový algoritmus efektivnější z pohledu slabého škálování 
+   vzhledem ke vstupu?
+
+   Stromový algoritmus není efektivnější z pohledu slabého škálování pro menší vstupy.
+
+4) Do souboru 3_4.txt napište svůj login, který používáte na Barboře, na druhý
+   řádek napište počet úloh (jobs), které jste spustili za dobu řešení projektu 2
+   a na třetí řádek uveďte, kolik času tyto úlohy běžely (formát HH:MM:SS). 
+   V souboru 3_4.txt využijte předpřipravené kostry - údaje přepište. Můžete využít
+   údajů ze Slurm plánovače, nepočítejte úlohy se suffixem (přepínač -X).
+
+
+Úloha 4: Analýza využití jader pomocí VTune
+================================================================================
+
+1) Jaké bylo průměrné využití jader pro všechny tři implementace s omezením na 
+   18 vláken? Hodnoty zapište do souboru 4_1.txt
+   (využijte předpřipravené kostry v souboru - čísla přepište).
+   
+   ref: 0.994
+   loop: 16.648
+   tree: 13.069
+
+2) Jaké bylo průměrné využití jader pro všechny tři implementace s využitím 
+   všech jader? Hodnoty zapište do souboru 4_2.txt (využijte předpřipravené 
+   kostry v souboru - čísla přepište).
+   
+   ref: 0.996
+   loop: 28.847
+   tree: 10.200
+
+3) Vypočítejte efektivitu vašeho řešení loop a tree vůči ref pro 18 a 36 vláken. 
+   Hodnoty naměřte ručně na výpočetním uzlu, ne přes VTune. Použijte následující parametry:
+   
+   ./PMC --builder {ref, tree, loop} -t {18, 36} --grid 128 ../data/bun_zipper_res3.pts 
+   
+   Hodnoty zapište do souboru 4_3.txt 
+   (využijte předpřipravené kostry v souboru - čísla přepište):
+   "loop (18)" vs. "ref"
+   "tree (18)" vs. "ref"
+   "loop (36)" vs. "ref"
+   "tree (36)" vs. "ref"
