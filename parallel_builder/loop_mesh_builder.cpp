@@ -5,7 +5,7 @@
  *
  * @brief   Parallel Marching Cubes implementation using OpenMP loops
  *
- * @date    DATE
+ * @date    01.12.2024
  **/
 
 #include <iostream>

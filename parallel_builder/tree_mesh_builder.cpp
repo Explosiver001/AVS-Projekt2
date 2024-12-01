@@ -5,7 +5,7 @@
  *
  * @brief   Parallel Marching Cubes implementation using OpenMP tasks + octree early elimination
  *
- * @date    DATE
+ * @date    01.12.2024
  **/
 
 #include <iostream>
@@ -28,6 +28,7 @@ unsigned TreeMeshBuilder::marchCubes(const ParametricScalarField &field)
     // code and only when that works add OpenMP tasks to achieve parallelism.
     unsigned totalTriangles = 0;
 
+    // start parallel region
     #pragma omp parallel default(none) shared(totalTriangles, field)
     {
         #pragma omp single nowait
@@ -42,32 +43,41 @@ unsigned TreeMeshBuilder::marchCubes(const ParametricScalarField &field)
 
 unsigned TreeMeshBuilder::buildTree(const Vec3_t<float> &cubeOffset, const ParametricScalarField &field, const unsigned gridSize){
     
+    // check if cube is empty
     if(isCubeEmpty(cubeOffset, field, gridSize)){
+        // if cube is empty, there is no need to calculate triangles inside
         return 0;
     }
     
+    // once cube is only 1 voxel, call buildCube
     if(gridSize <= GRID_SIZE_CUT_OFF)
     {
         return buildCube(cubeOffset, field);
     }
 
+    // compute inner grid size
     unsigned innerGridSize = gridSize / 2;
+
     unsigned totalTriangles = 0;
 
+    // divide computation to 8 threads, each working on 1 inner cube
     size_t innerCubes = sc_vertexNormPos.size();
-
     for (int i = 0; i < innerCubes; i++){
         #pragma omp task firstprivate(i) shared(field, totalTriangles, cubeOffset, innerGridSize)
         {
             Vec3_t<float> vertexNormPos = sc_vertexNormPos.at(i);
+
+            // calculate new cube coordinates
             Vec3_t<float> innerCubeOffset(
                 cubeOffset.x + vertexNormPos.x * innerGridSize,
                 cubeOffset.y + vertexNormPos.y * innerGridSize,
                 cubeOffset.z + vertexNormPos.z * innerGridSize
             );
 
+            // recursively call buildTree
             unsigned innerTriangles = buildTree(innerCubeOffset, field, innerGridSize);
 
+            // store calculated results
             #pragma omp atomic update
             totalTriangles += innerTriangles;
         }
@@ -80,9 +90,9 @@ unsigned TreeMeshBuilder::buildTree(const Vec3_t<float> &cubeOffset, const Param
 }
 
 bool TreeMeshBuilder::isCubeEmpty(const Vec3_t<float> &cubeOffset, const ParametricScalarField &field, const unsigned cubeGridSize){
-
 	float halfEdgeLength = cubeGridSize * mGridResolution / 2.0;
     
+    // calculate cube center
 	const Vec3_t<float> cubeCenter(
 		cubeOffset.x * mGridResolution + halfEdgeLength,
 		cubeOffset.y * mGridResolution + halfEdgeLength,
