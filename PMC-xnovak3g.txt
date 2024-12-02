@@ -118,3 +118,5 @@ Login: xnovak3g
    "tree (18)" vs. "ref"
    "loop (36)" vs. "ref"
    "tree (36)" vs. "ref"
+
+   - hodnoty jsou vypočteny z průměrů více měření
