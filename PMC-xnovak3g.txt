@@ -121,3 +121,6 @@ Login: xnovak3g
    "tree (36)" vs. "ref"
 
    - hodnoty jsou vypočteny z průměrů více měření
+   - při měření byly nastaveny hodnoty stejně jako v "vtune.sl"
+      - OMP_PROC_BIND=close 
+      - OMP_PLACES=cores
