@@ -87,6 +87,7 @@ Login: xnovak3g
    V souboru 3_4.txt využijte předpřipravené kostry - údaje přepište. Můžete využít
    údajů ze Slurm plánovače, nepočítejte úlohy se suffixem (přepínač -X).
 
+   - velká část implementace probíhala na vlastním počítači
 
 Úloha 4: Analýza využití jader pomocí VTune
 ================================================================================
