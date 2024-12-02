@@ -115,12 +115,11 @@ Login: xnovak3g
    
    Hodnoty zapište do souboru 4_3.txt 
    (využijte předpřipravené kostry v souboru - čísla přepište):
-   "loop (18)" vs. "ref"
-   "tree (18)" vs. "ref"
-   "loop (36)" vs. "ref"
-   "tree (36)" vs. "ref"
+   "loop (18)" vs. "ref" - 527 ms vs 9269 ms
+   "tree (18)" vs. "ref" - 211 ms vs 9269 ms
+   "loop (36)" vs. "ref" - 304 ms vs 9269 ms
+   "tree (36)" vs. "ref" - 160 ms vs 9269 ms
 
-   - hodnoty jsou vypočteny z průměrů více měření
    - při měření byly nastaveny hodnoty stejně jako v "vtune.sl"
       - OMP_PROC_BIND=close 
       - OMP_PLACES=cores
